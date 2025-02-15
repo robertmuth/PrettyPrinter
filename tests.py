@@ -1,13 +1,13 @@
 #!/usr/bin/python3
 """
-Tests and sample usage of the Pretty Printer
+Tests and sample usage of the Pretty Printer.
 """
 import pretty as PP
 
 
 def SplitAndGroup(s: str,  break_type=PP.BreakType.INCONSISTENT):
-    token = [PP.String(w) for w in s.split(' ')]
-    out = [PP.Break()] * (len(token) * 2 - 1)
+    token: list[PP.Token] = [PP.String(w) for w in s.split(' ')]
+    out: list[PP.Token] = [PP.Break()] * (len(token) * 2 - 1)
     out[0::2] = token
     return [PP.Begin(break_type, 2)] + out + [PP.End()]
 
@@ -206,13 +206,20 @@ end;
 ]
 
 
-for line_width, token, expected in TESTS:
-    print()
-    print(f"[width={line_width}]")
-    print(expected)
-    result = PP.PrettyPrint(token, line_width)
-    if expected != result:
-        print("FAILURE-START")
-        print(result)
-        print("FAILURE-END")
-        assert False
+def RunAllTests():
+    for line_width, token, expected in TESTS:
+        print()
+        print(f"[width={line_width}]")
+        print("EXPECTED-START")
+        print(expected)
+        print("EXPECTED-END")
+        result = PP.PrettyPrint(token, line_width)
+        if expected != result:
+            print("FAILURE-START")
+            print(result)
+            print("FAILURE-END")
+            assert False
+
+
+if __name__ == "__main__":
+    RunAllTests()

@@ -28,9 +28,8 @@ For usage see `tests.py`
 
 Copyright 2025 Robert Muth <robert@muth.org>
 See LICENSE for more details.
-
 """
-from typing import Any, Union
+from typing import Union
 
 import enum
 import dataclasses
@@ -75,10 +74,11 @@ def LineBreak(offset=0):
 
 @dataclasses.dataclass()
 class Begin:
-     # how to handle Breaks within
+    # how to handle Breaks nested between this `Begin`` and `End``
     break_type: BreakType
     # additional indent
     offset: int
+
 
 @dataclasses.dataclass()
 class End:
@@ -88,7 +88,7 @@ class End:
 Token = Union[String, Break, Begin, End]
 
 
-def _ComputeSizes(tokens: list[Any]):
+def _ComputeSizes(tokens: list[Token]):
     # Stack invariants:
     # only Begin and Break tokens can be on the stack
     # there are never two consecutive Break Tokens on the Stack
