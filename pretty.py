@@ -20,8 +20,9 @@ A token may be one of:
 * Begin
 * End
 
-A new BreakType, FORCE_LINE_BREAK, is added to make nesting
-easier.
+Enhancements to Oppen:
+* a new BreakType, FORCE_LINE_BREAK, makes nesting easier
+* a week annotation to Break helps with formatting Lisp like code
 
 For usage see `tests.py`
 
@@ -33,6 +34,8 @@ from typing import Union
 
 import enum
 import dataclasses
+
+_INFINITY = 1000000
 
 
 class BreakType(enum.Enum):
@@ -63,16 +66,24 @@ class Break:
     Either a space of widths `num_spaces` or a line break with additional
     `offset` relative to the indentation of the enclosing block
     """
-    # Number of spaces if no overflow. Unless you really want more than
-    # one space as seperator, the primary use case is `LineBreak` below.
+    # Number of spaces if no overflow. Besides 1 the primary other values
+    # are 0 and infinity (for LineBreak)
     num_spaces: int = 1
     # indent for overﬂow lines
     offset: int = 0
+    # NOTE: THIS IS AN ADDITION TO THE ORIGINAL PAPER
+    # This is useful with BreakType CONSISTENT to not automatically
+    # force line breaks at the beginning of a group
+    weak: bool = False
 
 
 def LineBreak(offset=0):
     # Break which is guaranteed to overflow and hence forces a line break
-    return Break(num_spaces=1000000, offset=offset)
+    return Break(num_spaces=_INFINITY, offset=offset)
+
+
+def WeakBreak(num_spaces):
+    return Break(num_spaces, 0, True)
 
 
 @dataclasses.dataclass()
@@ -112,6 +123,7 @@ def _ComputeSizes(tokens: list[Token]):
                 x = scan_stack.pop(-1)
                 sizes[x] += total
         elif isinstance(token, Break):
+            # "close out" the last Break if there is one
             sizes.append(-total)
             z = scan_stack[-1]
             if isinstance(tokens[z], Break):
@@ -126,6 +138,28 @@ def _ComputeSizes(tokens: list[Token]):
             assert False, f"unknown token {token}"
     assert len(tokens) == len(sizes), f"{len(tokens)} {len(sizes)}"
     return sizes
+
+
+def _UpdateSizeOfWeakBreaks(tokens: list[Token], sizes: list[int]):
+    total = 10000000
+    for i in reversed(range(len(tokens))):
+        token: Token = tokens[i]
+        if isinstance(token, Begin):
+            pass
+        elif isinstance(token, End):
+            total = 1000000
+        elif isinstance(token, String):
+            total += sizes[i]
+        elif isinstance(token, Break):
+            if token.weak:
+                if total < sizes[i]:
+                    sizes[i] = total
+                    total += token.num_spaces
+                else:
+                    total = sizes[i]
+
+            else:
+                total = 1000000
 
 
 class _Output:
@@ -201,7 +235,11 @@ def _Render(tokens, sizes, output: _Output):
             # each occurrence of ] (string) into (string) ]."
         elif isinstance(token, Break):
             top = print_stack[-1]
-            if top.break_type == BreakType.FITS:
+
+            if token.weak and output.fits_in_current_line(size):
+                output.append_with_space_update(
+                    " " * token.num_spaces)  # indent
+            elif top.break_type == BreakType.FITS:
                 output.append_with_space_update(
                     " " * token.num_spaces)  # indent
             elif top.break_type in (BreakType.CONSISTENT, BreakType.FORCE_LINE_BREAK):
@@ -226,6 +264,7 @@ def _Render(tokens, sizes, output: _Output):
 def PrettyPrint(tokens: list[Token], line_width: int) -> str:
     # print(tokens)
     output = _Output(line_width)
-    sizes = _ComputeSizes(tokens)
+    sizes: list[int] = _ComputeSizes(tokens)
+    _UpdateSizeOfWeakBreaks(tokens, sizes)
     _Render(tokens, sizes, output)
     return output.get_string()

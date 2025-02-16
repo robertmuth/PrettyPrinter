@@ -6,7 +6,7 @@ Pretty printer based on
   [https://www.cs.tufts.edu/~nr/cs257/archive/derek-oppen/prettyprinting.pdf]
 ```
 
-with small enhancements.
+with some enhancements.
 
   For usage see [tests.py]
 

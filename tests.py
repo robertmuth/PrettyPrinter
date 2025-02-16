@@ -5,14 +5,14 @@ Tests and sample usage of the Pretty Printer.
 import pretty as PP
 
 
-def SplitAndGroup(s: str,  break_type=PP.BreakType.INCONSISTENT):
+def SplitAndGroup(s: str,  break_type=PP.BreakType.INCONSISTENT) -> list[PP.Token]:
     token: list[PP.Token] = [PP.String(w) for w in s.split(' ')]
     out: list[PP.Token] = [PP.Break()] * (len(token) * 2 - 1)
     out[0::2] = token
     return [PP.Begin(break_type, 2)] + out + [PP.End()]
 
 
-example0 = [
+example0: list[PP.Token] = [
     PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 0),
     PP.String('procedure test(x, y: Integer);'),
     PP.Break(),
@@ -36,7 +36,7 @@ example0 = [
     PP.End()]
 
 
-example1 = [
+example1: list[PP.Token] = [
     *SplitAndGroup('begin'), PP.LineBreak(),
     *SplitAndGroup('x := f(x);'), PP.Break(),
     *SplitAndGroup('y := f(y);'), PP.Break(),
@@ -46,7 +46,7 @@ example1 = [
     PP.End()
 ]
 
-example2 = [
+example2: list[PP.Token] = [
     *SplitAndGroup('begin'), PP.LineBreak(),
     PP.Begin(PP.BreakType.CONSISTENT, 0),
     *SplitAndGroup('x := f(x);'), PP.Break(),
@@ -59,7 +59,7 @@ example2 = [
 
 ]
 
-example3 = [
+example3: list[PP.Token] = [
     PP.String("XXXXXXXXXX"),
     PP.Break(), PP.String("+"), PP.Break(),
     PP.String("YYYYYYYYYY"),
@@ -67,7 +67,7 @@ example3 = [
     PP.String("ZZZZZZZZZZ"),
     PP.End()]
 
-example4 = [
+example4: list[PP.Token] = [
     PP.Begin(PP.BreakType.INCONSISTENT, 2),
     PP.String("begin"), PP.Break(),
     PP.String("x"),
@@ -79,7 +79,7 @@ example4 = [
     PP.End()
 ]
 
-example5 = [
+example5: list[PP.Token] = [
     PP.Begin(PP.BreakType.INCONSISTENT, 2),
     PP.String("let x = "),
     PP.Begin(PP.BreakType.INCONSISTENT, 2),
@@ -126,6 +126,78 @@ example5 = [
     PP.End(),
     PP.End(),
 ]
+
+
+example_abcd: list[PP.Token] = [
+    PP.Begin(PP.BreakType.CONSISTENT, 4),
+    PP.String("("),
+    PP.WeakBreak(0),
+    PP.String("a"),
+    PP.Break(),
+    PP.String("b"),
+    PP.Break(),
+    PP.String("c"),
+    PP.Break(),
+    PP.String("d"),
+    # note missing break
+    PP.String(")"),
+    PP.End()
+]
+
+example_abcdefgh: list[PP.Token] = [
+    PP.Begin(PP.BreakType.CONSISTENT, 1),
+    PP.String("("),
+    PP.WeakBreak(0),
+    PP.Begin(PP.BreakType.CONSISTENT, 4),
+    PP.String("("),
+    PP.WeakBreak(0),
+    PP.String("abcde"),
+    PP.WeakBreak(1),
+    PP.Begin(PP.BreakType.CONSISTENT, 1),
+    PP.String("("),
+    PP.WeakBreak(0),
+    *example_abcd,
+    PP.Break(0),
+    *example_abcd,
+    PP.Break(0),
+    *example_abcd,
+    PP.Break(0),
+    *example_abcd,
+    PP.String(")"),
+    PP.End(),
+    PP.String(")"),
+    PP.End(),
+    PP.String(")"),
+    #
+    PP.Break(1),
+    #
+    PP.Begin(PP.BreakType.CONSISTENT, 4),
+    PP.String("("),
+    PP.WeakBreak(0),
+    PP.String("abcdefgh"),
+    PP.WeakBreak(1),
+    PP.Begin(PP.BreakType.CONSISTENT, 1),
+    PP.String("("),
+    PP.WeakBreak(0),
+    *example_abcd,
+    PP.Break(0),
+    *example_abcd,
+    PP.Break(0),
+    *example_abcd,
+    PP.Break(0),
+    *example_abcd,
+    PP.String(")"),
+    PP.End(),
+    PP.String(")"),
+    PP.End(),
+    PP.String(")"),
+    PP.End(),
+]
+
+# example6: list[PP.Token] =
+
+# ((abcde((a b c d)(a b c d)(a b c d)(a b c d)))
+# (abcdefgh((a b c d)(a b c d)(a b c d)(a b c d))))
 
 TESTS = [
     (75,
@@ -203,6 +275,21 @@ end;
           0, 1, 2,
           3, 4, 5,
           6, 7, 8}"""),
+    (20, example_abcd, "(a b c d)"),
+    (5, example_abcd, """(a
+    b
+    c
+    d)"""),
+    (25, example_abcdefgh, """((abcde ((a b c d)
+         (a b c d)
+         (a b c d)
+         (a b c d))))
+ (abcdefgh ((a b c d)
+            (a b c d)
+            (a b c d)
+            (a b c d))))"""),
+
+
 ]
 
 
