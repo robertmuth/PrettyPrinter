@@ -1,7 +1,7 @@
 # PrettyPrinter
 Pretty printer based on
 ```
-  Pretty Priting
+  Pretty Printing
   Derek C. Oppen, 1979
   [https://www.cs.tufts.edu/~nr/cs257/archive/derek-oppen/prettyprinting.pdf]
 ```
