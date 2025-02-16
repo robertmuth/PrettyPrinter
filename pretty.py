@@ -141,13 +141,14 @@ def _ComputeSizes(tokens: list[Token]):
 
 
 def _UpdateSizeOfWeakBreaks(tokens: list[Token], sizes: list[int]):
-    total = 10000000
+    # Update chains of WeakBreaks from the right to have smaller sizes
+    total = _INFINITY
     for i in reversed(range(len(tokens))):
         token: Token = tokens[i]
         if isinstance(token, Begin):
             pass
         elif isinstance(token, End):
-            total = 1000000
+            total = _INFINITY
         elif isinstance(token, String):
             total += sizes[i]
         elif isinstance(token, Break):
@@ -157,9 +158,8 @@ def _UpdateSizeOfWeakBreaks(tokens: list[Token], sizes: list[int]):
                     total += token.num_spaces
                 else:
                     total = sizes[i]
-
             else:
-                total = 1000000
+                total = _INFINITY
 
 
 class _Output:
