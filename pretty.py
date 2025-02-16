@@ -63,12 +63,15 @@ class Break:
     Either a space of widths `num_spaces` or a line break with additional
     `offset` relative to the indentation of the enclosing block
     """
-    num_spaces: int = 1  # number of spaces if no overflow
-    offset: int = 0  # indent for overﬂow lines
+    # Number of spaces if no overflow. Unless you really want more than
+    # one space as seperator, the primary use case is `LineBreak` below.
+    num_spaces: int = 1
+    # indent for overﬂow lines
+    offset: int = 0
 
 
 def LineBreak(offset=0):
-    # Break which is guaranteed to overflow
+    # Break which is guaranteed to overflow and hence forces a line break
     return Break(num_spaces=1000000, offset=offset)
 
 
@@ -97,30 +100,30 @@ def _ComputeSizes(tokens: list[Token]):
     scan_stack = []
     sizes = []
     total = 0  # corresponds to `rightotal` in the paper
-    for n, t in enumerate(tokens):
-        if isinstance(t, Begin):
+    for n, token in enumerate(tokens):
+        if isinstance(token, Begin):
             scan_stack.append(n)
             sizes.append(-total)
-        elif isinstance(t, End):
+        elif isinstance(token, End):
             sizes.append(1)
             x = scan_stack.pop(-1)
             sizes[x] += total
             if isinstance(tokens[x], Break):
                 x = scan_stack.pop(-1)
                 sizes[x] += total
-        elif isinstance(t, Break):
+        elif isinstance(token, Break):
             sizes.append(-total)
             z = scan_stack[-1]
             if isinstance(tokens[z], Break):
                 z = scan_stack.pop()
                 sizes[z] += total
             scan_stack.append(n)
-            total += t.num_spaces
-        elif isinstance(t, String):
-            sizes.append(len(t.string))
-            total += len(t.string)
+            total += token.num_spaces
+        elif isinstance(token, String):
+            sizes.append(len(token.string))
+            total += len(token.string)
         else:
-            assert False, f"unknown token {t}"
+            assert False, f"unknown token {token}"
     assert len(tokens) == len(sizes), f"{len(tokens)} {len(sizes)}"
     return sizes
 
@@ -158,8 +161,8 @@ class _Output:
 
 @dataclasses.dataclass()
 class _Entry:
-    offset: int  # same measurement as `remaining`, i.e. no offset means `offset`== margin
-    brk: BreakType
+    offset: int  # same measurement as `remaining`, i.e.`offset`== margin means zero indent
+    break_type: BreakType
 
 
 def _Render(tokens, sizes, output: _Output):
@@ -187,7 +190,7 @@ def _Render(tokens, sizes, output: _Output):
             print_stack.append(entry)
         elif isinstance(token, End):
             top: _Entry = print_stack.pop()
-            if top.brk == BreakType.FORCE_LINE_BREAK:
+            if top.break_type == BreakType.FORCE_LINE_BREAK:
                 offset = output.line_width if not print_stack else print_stack[-1].offset
                 output.set_offset(offset)
                 output.line_break()
@@ -198,13 +201,13 @@ def _Render(tokens, sizes, output: _Output):
             # each occurrence of ] (string) into (string) ]."
         elif isinstance(token, Break):
             top = print_stack[-1]
-            if top.brk == BreakType.FITS:
+            if top.break_type == BreakType.FITS:
                 output.append_with_space_update(
                     " " * token.num_spaces)  # indent
-            elif top.brk in (BreakType.CONSISTENT, BreakType.FORCE_LINE_BREAK):
+            elif top.break_type in (BreakType.CONSISTENT, BreakType.FORCE_LINE_BREAK):
                 output.set_offset(top.offset - token.offset)
                 output.line_break()
-            elif top.brk == BreakType.INCONSISTENT:
+            elif top.break_type == BreakType.INCONSISTENT:
                 if output.fits_in_current_line(size):
                     output.append_with_space_update(
                         " " * token.num_spaces)  # indent

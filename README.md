@@ -9,3 +9,15 @@ Pretty printer based on
 with small enhancements.
 
   For usage see [tests.py]
+
+For more recent developments in the field
+of Pretty Printing this paper has a good historical overview:
+
+```
+The Final Pretty Printer
+David Christiansen, David Darais, Weixi Ma
+https://davidchristiansen.dk/drafts/final-pretty-printer-draft.pdf
+```
+
+Like most recent papers it is using a very functional style and may be
+less accessible.
