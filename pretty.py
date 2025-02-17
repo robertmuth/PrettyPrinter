@@ -223,11 +223,7 @@ def _Render(tokens, sizes, output: _Output):
                     output.remaining - token.offset, bt)
             print_stack.append(entry)
         elif isinstance(token, End):
-            top: _Entry = print_stack.pop()
-            if top.break_type == BreakType.FORCE_LINE_BREAK:
-                offset = output.line_width if not print_stack else print_stack[-1].offset
-                output.set_offset(offset)
-                output.line_break()
+            print_stack.pop()
             # Note, not resetting the offset right away in the
             # non-FORCE_LINE_BREAK case is responsible for the
             # behavior characterized in the paper as:

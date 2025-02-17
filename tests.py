@@ -28,10 +28,12 @@ example0: list[PP.Token] = [
     PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 2),
     PP.String("x := x + z;"),
     PP.End(),
+    PP.Break(),
     PP.String("end;"),
     PP.Break(),
     PP.String("y:=x;"),
     PP.End(),
+    PP.Break(),
     PP.String("end;"),
     PP.End()]
 
@@ -194,10 +196,37 @@ example_abcdefgh: list[PP.Token] = [
     PP.End(),
 ]
 
-# example6: list[PP.Token] =
 
-# ((abcde((a b c d)(a b c d)(a b c d)(a b c d)))
-# (abcdefgh((a b c d)(a b c d)(a b c d)(a b c d))))
+example_while: list[PP.Token] = [
+    PP.Begin(PP.BreakType.INCONSISTENT, 0),
+    PP.String("while"),
+    PP.Break(),
+    PP.String("True"),
+    PP.Break(0),
+    PP.String(":"),
+    PP.End(),
+]
+
+example_print: list[PP.Token] = [
+    PP.Begin(PP.BreakType.INCONSISTENT, 0),
+    PP.String("print("), PP.Break(0), PP.String("'hello world'"),
+    PP.String(")"),
+    PP.End(),
+]
+example_python: list[PP.Token] = [
+    PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 0),
+    *example_while,
+    PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4),
+    *example_while,
+    PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4),
+    *example_while,
+    PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4),
+    *example_print,
+    PP.End(),
+    PP.End(),
+    PP.End(),
+    PP.End(),
+]
 
 TESTS = [
     (75,
@@ -220,8 +249,7 @@ begin
     x := x + z;
   end;
   y:=x;
-end;
-"""),
+end;"""),
     (75, [PP.Begin(PP.BreakType.INCONSISTENT, 2)] + example1,
      """begin
   x := f(x); y := f(y); z := f(z); w := f(w);
@@ -288,7 +316,10 @@ end;
             (a b c d)
             (a b c d)
             (a b c d))))"""),
-
+    (40, example_python, """while True:
+    while True:
+        while True:
+            print('hello world')"""),
 
 ]
 
