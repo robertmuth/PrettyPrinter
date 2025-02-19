@@ -1,9 +1,9 @@
 # PrettyPrinter
 Pretty printer based on
 ```
-  Pretty Printing
-  Derek C. Oppen, 1979
-  [https://www.cs.tufts.edu/~nr/cs257/archive/derek-oppen/prettyprinting.pdf]
+Pretty Printing
+Derek C. Oppen, 1979
+[https://www.cs.tufts.edu/~nr/cs257/archive/derek-oppen/prettyprinting.pdf]
 ```
 
 with some enhancements.
@@ -19,5 +19,5 @@ David Christiansen, David Darais, Weixi Ma
 https://davidchristiansen.dk/drafts/final-pretty-printer-draft.pdf
 ```
 
-Like most recent papers it is using a very functional style and may be
-less accessible.
+Like most recent papers it is using a very functional style and may
+be less accessible.

@@ -22,7 +22,7 @@ A token may be one of:
 
 Enhancements to Oppen:
 * a new BreakType, FORCE_LINE_BREAK, makes nesting easier
-* a week annotation to Break helps with formatting Lisp like code
+* NoBreak is a break that should not be broken
 
 For usage see `tests.py`
 
@@ -82,7 +82,7 @@ def LineBreak(offset=0):
     return Break(num_spaces=_INFINITY, offset=offset)
 
 
-def WeakBreak(num_spaces):
+def NoBreak(num_spaces):
     return Break(num_spaces, 0, True)
 
 
@@ -142,6 +142,7 @@ def _ComputeSizes(tokens: list[Token]):
 
 def _UpdateSizeOfWeakBreaks(tokens: list[Token], sizes: list[int]):
     # Update chains of WeakBreaks from the right to have smaller sizes
+    # This will result in WeakBreak to more likely fit in the current line
     total = _INFINITY
     for i in reversed(range(len(tokens))):
         token: Token = tokens[i]
@@ -159,8 +160,26 @@ def _UpdateSizeOfWeakBreaks(tokens: list[Token], sizes: list[int]):
                 else:
                     total = sizes[i]
             else:
-                total = _INFINITY
+                total = 0
+    # Add to the break preceding a sequence of WeakBreaks
+    # this should prevent breaking at WeakBreaks because
+    # we break earlier at the preceding Break
+    total = 0
+    for i in reversed(range(len(tokens))):
 
+        token: Token = tokens[i]
+        if isinstance(token, Begin):
+            pass
+        elif isinstance(token, End):
+            pass
+        elif isinstance(token, String):
+            total += sizes[i]
+        elif isinstance(token, Break):
+            total += token.num_spaces
+            if not token.weak:
+                if total > sizes[i]:
+                    sizes[i] = total
+                total = 0
 
 class _Output:
 
@@ -262,5 +281,7 @@ def PrettyPrint(tokens: list[Token], line_width: int) -> str:
     output = _Output(line_width)
     sizes: list[int] = _ComputeSizes(tokens)
     _UpdateSizeOfWeakBreaks(tokens, sizes)
+    #for t, s in zip(tokens, sizes):
+    #    print (t, s)
     _Render(tokens, sizes, output)
     return output.get_string()
