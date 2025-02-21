@@ -113,8 +113,8 @@ def _ComputeSizes(tokens: list[Token]):
     total = 0  # corresponds to `rightotal` in the paper
     for n, token in enumerate(tokens):
         if isinstance(token, Beg):
-            scan_stack.append(n)
             sizes.append(-total)
+            scan_stack.append(n)
         elif isinstance(token, End):
             sizes.append(1)
             x = scan_stack.pop(-1)
@@ -123,8 +123,8 @@ def _ComputeSizes(tokens: list[Token]):
                 x = scan_stack.pop(-1)
                 sizes[x] += total
         elif isinstance(token, Brk):
-            # "close out" the last Break if there is one
             sizes.append(-total)
+            # "close out" the last Break if there is one
             z = scan_stack[-1]
             if isinstance(tokens[z], Brk):
                 z = scan_stack.pop()
@@ -151,7 +151,6 @@ def _UpdateSizeOfNoBreaks(tokens: list[Token], sizes: list[int]):
                 total = _INFINIE_WIDTH
         elif isinstance(token, End):
             total = _INFINIE_WIDTH
-
         elif isinstance(token, Brk):
             if token.nobreak:
                 if total < sizes[i]:
@@ -163,6 +162,8 @@ def _UpdateSizeOfNoBreaks(tokens: list[Token], sizes: list[int]):
                 total = 0
         elif isinstance(token, Str):
             total += sizes[i]
+        else:
+            assert False
     # Add to the break preceding a sequence of NoBreaks
     # this should prevent breaking at NoBreaks because
     # we break earlier at the preceding Break
@@ -205,16 +206,13 @@ class _Output:
     def indent_with_space_update(self, num_spaces):
         self.append_with_space_update(" " * num_spaces)
 
-    def current_indent(self):
-        return self.line_width - self.remaining
-
     def fits_in_current_line(self, size: int) -> bool:
         return size <= self.remaining
 
     def set_offset_and_line_break(self, offset: int):
         self.remaining = offset
         self.buffer.append("\n")
-        self.buffer.append(" " * self.current_indent())
+        self.buffer.append(" " * (self.line_width - self.remaining))
 
 
 @dataclasses.dataclass()
@@ -278,8 +276,8 @@ def PrettyPrint(tokens: list[Token], line_width: int) -> str:
     # print(tokens)
     sizes: list[int] = _ComputeSizes(tokens)
     _UpdateSizeOfNoBreaks(tokens, sizes)
-    # for t, s in zip(tokens, sizes):
-    #    print (t, s)
+    #for t, s in zip(tokens, sizes):
+    #    print(t, s)
     output = _Output(line_width)
     _Render(tokens, sizes, output)
     return output.get_string()
