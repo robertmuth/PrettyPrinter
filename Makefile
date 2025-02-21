@@ -9,5 +9,5 @@ test_py:
 	$(PYTHON3) ./tests.py
 
 test_cc:
-	$(CXX) -Wall -Wextra -Werror -std=c++17 -o tests tests.cc pretty.cc
+	$(CXX) -Wall -Wextra -Werror -std=c++17 -o tests pretty.cc tests.cc
 	./tests
