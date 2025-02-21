@@ -15,10 +15,10 @@ Which takes list of Tokens and returns a string with
 formatted text.
 
 A token may be one of:
-* String
-* Break
-* Begin
-* End
+* Str -- a verbsatim string
+* Brk -- an optional line break
+* Beg -- begin of a group
+* End -- end of a group
 
 Enhancements to Oppen:
 * a new BreakType, FORCE_LINE_BREAK, makes nesting easier
@@ -35,7 +35,7 @@ from typing import Union
 import enum
 import dataclasses
 
-_INFINITY = 1000000
+_INFINIE_WIDTH = 1000000
 
 
 class BreakType(enum.Enum):
@@ -56,12 +56,12 @@ class BreakType(enum.Enum):
 
 
 @dataclasses.dataclass()
-class String:
+class Str:
     string: str
 
 
 @dataclasses.dataclass()
-class Break:
+class Brk:
     """
     Either a space of widths `num_spaces` or a line break with additional
     `offset` relative to the indentation of the enclosing block
@@ -79,15 +79,15 @@ class Break:
 
 def LineBreak(offset=0):
     # Break which is guaranteed to overflow and hence forces a line break
-    return Break(num_spaces=_INFINITY, offset=offset)
+    return Brk(num_spaces=_INFINIE_WIDTH, offset=offset)
 
 
 def NoBreak(num_spaces):
-    return Break(num_spaces, 0, True)
+    return Brk(num_spaces, 0, True)
 
 
 @dataclasses.dataclass()
-class Begin:
+class Beg:
     # how to handle Breaks nested between this `Begin`` and `End``
     break_type: BreakType
     # additional indent
@@ -99,7 +99,7 @@ class End:
     pass
 
 
-Token = Union[String, Break, Begin, End]
+Token = Union[Str, Brk, Beg, End]
 
 
 def _ComputeSizes(tokens: list[Token]):
@@ -112,26 +112,26 @@ def _ComputeSizes(tokens: list[Token]):
     sizes = []
     total = 0  # corresponds to `rightotal` in the paper
     for n, token in enumerate(tokens):
-        if isinstance(token, Begin):
+        if isinstance(token, Beg):
             scan_stack.append(n)
             sizes.append(-total)
         elif isinstance(token, End):
             sizes.append(1)
             x = scan_stack.pop(-1)
             sizes[x] += total
-            if isinstance(tokens[x], Break):
+            if isinstance(tokens[x], Brk):
                 x = scan_stack.pop(-1)
                 sizes[x] += total
-        elif isinstance(token, Break):
+        elif isinstance(token, Brk):
             # "close out" the last Break if there is one
             sizes.append(-total)
             z = scan_stack[-1]
-            if isinstance(tokens[z], Break):
+            if isinstance(tokens[z], Brk):
                 z = scan_stack.pop()
                 sizes[z] += total
             scan_stack.append(n)
             total += token.num_spaces
-        elif isinstance(token, String):
+        elif isinstance(token, Str):
             sizes.append(len(token.string))
             total += len(token.string)
         else:
@@ -143,17 +143,17 @@ def _ComputeSizes(tokens: list[Token]):
 def _UpdateSizeOfNoBreaks(tokens: list[Token], sizes: list[int]):
     # Update chains of NoBreaks from the right to have smaller sizes
     # This will result in NoBreak to more likely fit in the current line
-    total = _INFINITY
+    total = _INFINIE_WIDTH
     for i in reversed(range(len(tokens))):
         token: Token = tokens[i]
-        if isinstance(token, Begin):
+        if isinstance(token, Beg):
             if token.break_type == BreakType.FORCE_LINE_BREAK:
-                total = _INFINITY
+                total = _INFINIE_WIDTH
         elif isinstance(token, End):
-            total = _INFINITY
-        elif isinstance(token, String):
+            total = _INFINIE_WIDTH
+        elif isinstance(token, Str):
             total += sizes[i]
-        elif isinstance(token, Break):
+        elif isinstance(token, Brk):
             if token.nobreak:
                 if total < sizes[i]:
                     sizes[i] = total
@@ -169,14 +169,14 @@ def _UpdateSizeOfNoBreaks(tokens: list[Token], sizes: list[int]):
     for i in reversed(range(len(tokens))):
 
         token: Token = tokens[i]
-        if isinstance(token, Begin):
+        if isinstance(token, Beg):
             if token.break_type == BreakType.FORCE_LINE_BREAK:
                 total = 0
         elif isinstance(token, End):
             pass
-        elif isinstance(token, String):
+        elif isinstance(token, Str):
             total += sizes[i]
-        elif isinstance(token, Break):
+        elif isinstance(token, Brk):
             total += token.num_spaces
             if not token.nobreak:
                 if total > sizes[i]:
@@ -224,7 +224,7 @@ def _Render(tokens, sizes, output: _Output):
     print_stack: list[_Entry] = []
 
     for token, size in zip(tokens, sizes):
-        if isinstance(token, Begin):
+        if isinstance(token, Beg):
             if token.break_type == BreakType.FORCE_LINE_BREAK:
                 if print_stack:
                     offset = print_stack[-1].offset
@@ -250,7 +250,7 @@ def _Render(tokens, sizes, output: _Output):
             # behavior characterized in the paper as:
             # "In particular, it effectively changes (dynamically)
             # each occurrence of ] (string) into (string) ]."
-        elif isinstance(token, Break):
+        elif isinstance(token, Brk):
             top = print_stack[-1]
 
             if token.nobreak and output.fits_in_current_line(size):
@@ -270,7 +270,7 @@ def _Render(tokens, sizes, output: _Output):
                     output.set_offset(top.offset - token.offset)
                     output.line_break()
 
-        elif isinstance(token, String):
+        elif isinstance(token, Str):
             # TODO: handle long/multiline strings
             assert size == len(token.string)
             output.append_with_space_update(token.string)
@@ -280,10 +280,10 @@ def _Render(tokens, sizes, output: _Output):
 
 def PrettyPrint(tokens: list[Token], line_width: int) -> str:
     # print(tokens)
-    output = _Output(line_width)
     sizes: list[int] = _ComputeSizes(tokens)
     _UpdateSizeOfNoBreaks(tokens, sizes)
     #for t, s in zip(tokens, sizes):
     #    print (t, s)
+    output = _Output(line_width)
     _Render(tokens, sizes, output)
     return output.get_string()
