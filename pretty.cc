@@ -54,13 +54,80 @@ std::vector<ssize_t> ComputeSizes(const std::vector<Token>& tokens) {
   return sizes;
 }
 
-#if 0
 void UpdatesSizesForNoBreaks(const std::vector<Token>& tokens,
-                        const std::vector<ssize_t>& sizes) {}
-#endif
+                             std::vector<ssize_t>& sizes) {
+  ssize_t total = INFINITE_WIDTH;
+  for (size_t j = 0; j < tokens.size(); j++) {
+    size_t i = tokens.size() - 1 - j;
+    const Token& token = tokens[i];
+    switch (token.type) {
+      case TokenType::BEG:
+        if (token.beg.break_type == BreakType::FORCE_LINE_BREAK) {
+          total = INFINITE_WIDTH;
+        }
+        break;
+      case TokenType::END:
+        total += INFINITE_WIDTH;
+        break;
+      case TokenType::STR:
+        total += token.str.size();
+        break;
+      case TokenType::BRK:
+        if (token.brk.nobreak) {
+          if (total < sizes[i]) {
+            sizes[i] = total;
+            total += token.brk.num_space;
+          } else {
+            total = sizes[i];
+          }
+        } else {
+          total = 0;
+        }
+        break;
 
-                        std::string PrettyPrint(const std::vector<Token>& tokens, size_t line_width) {
+      default:
+        assert(false);  // unreachable
+        break;
+    }
+  }
+  //
+  total = 0;
+  for (size_t j = 0; j < tokens.size(); j++) {
+    size_t i = tokens.size() - 1 - j;
+    const Token& token = tokens[i];
+    switch (token.type) {
+      case TokenType::BEG:
+        if (token.beg.break_type == BreakType::FORCE_LINE_BREAK) {
+          total = 0;
+        }
+        break;
+      case TokenType::END:
+        //
+        break;
+      case TokenType::STR:
+        total += token.str.size();
+        break;
+      case TokenType::BRK:
+        total += token.brk.num_space;
+        if (!token.brk.nobreak) {
+          if (total > sizes[i]) {
+            sizes[i] = total;
+          } else {
+            total = 0;
+          }
+        }
+        break;
+
+      default:
+        assert(false);  // unreachable
+        break;
+    }
+  }
+}
+
+std::string PrettyPrint(const std::vector<Token>& tokens, size_t line_width) {
   std::vector<ssize_t> sizes = ComputeSizes(tokens);
+  UpdatesSizesForNoBreaks(tokens, sizes);
   line_width = line_width;
   return "";
 }
