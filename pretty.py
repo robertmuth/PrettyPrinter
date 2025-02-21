@@ -74,7 +74,7 @@ class Break:
     # NOTE: THIS IS AN ADDITION TO THE ORIGINAL PAPER
     # This is useful with BreakType CONSISTENT to not automatically
     # force line breaks at the beginning of a group
-    weak: bool = False
+    nobreak: bool = False
 
 
 def LineBreak(offset=0):
@@ -140,20 +140,21 @@ def _ComputeSizes(tokens: list[Token]):
     return sizes
 
 
-def _UpdateSizeOfWeakBreaks(tokens: list[Token], sizes: list[int]):
-    # Update chains of WeakBreaks from the right to have smaller sizes
-    # This will result in WeakBreak to more likely fit in the current line
+def _UpdateSizeOfNoBreaks(tokens: list[Token], sizes: list[int]):
+    # Update chains of NoBreaks from the right to have smaller sizes
+    # This will result in NoBreak to more likely fit in the current line
     total = _INFINITY
     for i in reversed(range(len(tokens))):
         token: Token = tokens[i]
         if isinstance(token, Begin):
-            pass
+            if token.break_type == BreakType.FORCE_LINE_BREAK:
+                total = _INFINITY
         elif isinstance(token, End):
             total = _INFINITY
         elif isinstance(token, String):
             total += sizes[i]
         elif isinstance(token, Break):
-            if token.weak:
+            if token.nobreak:
                 if total < sizes[i]:
                     sizes[i] = total
                     total += token.num_spaces
@@ -161,22 +162,23 @@ def _UpdateSizeOfWeakBreaks(tokens: list[Token], sizes: list[int]):
                     total = sizes[i]
             else:
                 total = 0
-    # Add to the break preceding a sequence of WeakBreaks
-    # this should prevent breaking at WeakBreaks because
+    # Add to the break preceding a sequence of NoBreaks
+    # this should prevent breaking at NoBreaks because
     # we break earlier at the preceding Break
     total = 0
     for i in reversed(range(len(tokens))):
 
         token: Token = tokens[i]
         if isinstance(token, Begin):
-            pass
+            if token.break_type == BreakType.FORCE_LINE_BREAK:
+                total = 0
         elif isinstance(token, End):
             pass
         elif isinstance(token, String):
             total += sizes[i]
         elif isinstance(token, Break):
             total += token.num_spaces
-            if not token.weak:
+            if not token.nobreak:
                 if total > sizes[i]:
                     sizes[i] = total
                 total = 0
@@ -251,7 +253,7 @@ def _Render(tokens, sizes, output: _Output):
         elif isinstance(token, Break):
             top = print_stack[-1]
 
-            if token.weak and output.fits_in_current_line(size):
+            if token.nobreak and output.fits_in_current_line(size):
                 output.append_with_space_update(
                     " " * token.num_spaces)  # indent
             elif top.break_type == BreakType.FITS:
@@ -280,7 +282,7 @@ def PrettyPrint(tokens: list[Token], line_width: int) -> str:
     # print(tokens)
     output = _Output(line_width)
     sizes: list[int] = _ComputeSizes(tokens)
-    _UpdateSizeOfWeakBreaks(tokens, sizes)
+    _UpdateSizeOfNoBreaks(tokens, sizes)
     #for t, s in zip(tokens, sizes):
     #    print (t, s)
     _Render(tokens, sizes, output)
