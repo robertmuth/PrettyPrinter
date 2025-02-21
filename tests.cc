@@ -74,10 +74,14 @@ end;)"}};
 
   for (const auto& test : test_suite) {
     std::string result = PrettyPrint(test.tokens, test.line_width);
-    std::cout << "\n" << "EXPECTED_START\n" << test.expected << "\nEXPECTED_END\n";
+    std::cout << "\n"
+              << "EXPECTED-START\n"
+              << test.expected << "\nEXPECTED-END\n";
     if (result != test.expected) {
-      std::cerr << "Test failed: " << result << " != " << test.expected
-                << std::endl;
+      std::cout << "\n"
+                << "FAILED_START\n"
+                << result << "\nFAILED_END\n";
+
       return 1;
     }
   }

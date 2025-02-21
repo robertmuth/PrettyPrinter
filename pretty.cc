@@ -241,6 +241,7 @@ void Render(const std::vector<Token>& tokens, const std::vector<ssize_t>& sizes,
           } else {
             offset = output->LineWidth();
           }
+          entry = {output->Remaining(), token.beg.break_type};
         } else if (output->FitsInCurrentLine(size)) {
           entry = {0, BreakType::FITS};
         } else {
@@ -260,7 +261,6 @@ void Render(const std::vector<Token>& tokens, const std::vector<ssize_t>& sizes,
         const Entry& top = stack.back();
         BreakType break_type = top.break_type;
         size_t offset = top.offset;
-        stack.pop_back();
         if ((token.brk.nobreak && output->FitsInCurrentLine(size)) ||
             break_type == BreakType::FITS) {
           output->IndentWithSpaceUpdate(token.brk.num_spaces);
