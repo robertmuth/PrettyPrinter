@@ -3,8 +3,60 @@
 #include "pretty.h"
 
 #include <cassert>
+#include <iostream>
 
 namespace PP {
+
+std::ostream& operator<<(std::ostream& out, BreakType bt) {
+  switch (bt) {
+    case BreakType::INVALID:
+      out << "INVALID";
+      break;
+    case BreakType::FITS:
+      out << "FITS";
+      break;
+    case BreakType::INCONSISTENT:
+      out << "INCONSISTENT";
+      break;
+    case BreakType::CONSISTENT:
+      out << "CONSISTENT";
+      break;
+    case BreakType::FORCE_LINE_BREAK:
+      out << "FORCE_LINE_BREAK";
+      break;
+  }
+  return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const Token& t) {
+  switch (t.type) {
+    case TokenType::BEG:
+      out << "Beg(break_type=" << t.beg.break_type
+          << ", offset=" << t.beg.offset << ")";
+      break;
+    case TokenType::END:
+      out << "End()";
+      break;
+    case TokenType::BRK:
+      out << "Brk(numsoaces=" << t.brk.num_spaces << ", offset=" << t.brk.offset
+          << ", nobreak=" << t.brk.nobreak << ")";
+      break;
+    case TokenType::STR:
+      out << "Str(\"" << t.str << "\")";
+      break;
+    case TokenType::INVALID:
+      out << "INVALID";
+      break;
+  }
+  return out;
+}
+
+template <typename T>
+T PopStack(std::vector<T>& stack) {
+  T top = stack.back();
+  stack.pop_back();
+  return top;
+}
 
 std::vector<ssize_t> ComputeSizes(const std::vector<Token>& tokens) {
   std::vector<ssize_t> sizes;
@@ -13,22 +65,20 @@ std::vector<ssize_t> ComputeSizes(const std::vector<Token>& tokens) {
   std::vector<size_t> scan_stack;
   size_t x;
 
-  for (size_t i = 0; i < tokens.size(); i++) {
-    const Token& token = tokens[i];
+  for (size_t n = 0; n < tokens.size(); n++) {
+    const Token& token = tokens[n];
     switch (token.type) {
       case TokenType::BEG:
-        scan_stack.push_back(i);
         sizes.push_back(-total);
+        scan_stack.push_back(n);
         break;
       case TokenType::END:
         sizes.push_back(1);
-        x = scan_stack.back();
+        x = PopStack(scan_stack);
         sizes[x] += total;
-        scan_stack.pop_back();
         if (tokens[x].type == TokenType::BRK) {
-          x = scan_stack.back();
+          x = PopStack(scan_stack);
           sizes[x] += total;
-          scan_stack.pop_back();
         }
         break;
       case TokenType::BRK:
@@ -39,17 +89,17 @@ std::vector<ssize_t> ComputeSizes(const std::vector<Token>& tokens) {
           scan_stack.pop_back();
           sizes[x] += total;
         }
-        scan_stack.push_back(i);
+        scan_stack.push_back(n);
         total += token.brk.num_spaces;
         break;
       case TokenType::STR:
+        sizes.push_back(token.str.size());
         total += token.str.size();
         break;
       default:
         assert(false);  // unreachable
         break;
     }
-    sizes.push_back(total);
   }
   return sizes;
 }
@@ -67,7 +117,7 @@ void UpdatesSizesForNoBreaks(const std::vector<Token>& tokens,
         }
         break;
       case TokenType::END:
-        total += INFINITE_WIDTH;
+        total = INFINITE_WIDTH;
         break;
 
       case TokenType::BRK:
@@ -85,7 +135,7 @@ void UpdatesSizesForNoBreaks(const std::vector<Token>& tokens,
       case TokenType::STR:
         total += token.str.size();
         break;
-      default:
+      case TokenType::INVALID:
         assert(false);  // unreachable
         break;
     }
@@ -118,7 +168,7 @@ void UpdatesSizesForNoBreaks(const std::vector<Token>& tokens,
       case TokenType::STR:
         total += token.str.size();
         break;
-      default:
+      case TokenType::INVALID:
         assert(false);  // unreachable
         break;
     }
@@ -132,7 +182,7 @@ class Output {
     buffer_.reserve(approx_output_length);
   }
 
-  void Append(std::string_view str) { buffer_.append(str); }
+  void Append(std::string_view str) { buffer_ += str; }
 
   void AppendWithSpaceUpdate(std::string_view str) {
     buffer_ += str;
@@ -146,8 +196,6 @@ class Output {
     remaining_ -= num_spaces;
   }
 
-  size_t CurrentIndent() { return line_width_ - remaining_; }
-
   size_t LineWidth() { return line_width_; }
 
   size_t Remaining() { return remaining_; }
@@ -159,7 +207,7 @@ class Output {
   void SetOffsetAndLineBreak(size_t offset) {
     remaining_ = offset;
     buffer_ += '\n';
-    size_t ci = CurrentIndent();
+    size_t ci = line_width_ - remaining_;
     for (size_t i = 0; i < ci; i++) {
       buffer_ += ' ';
     }
@@ -189,7 +237,7 @@ void Render(const std::vector<Token>& tokens, const std::vector<ssize_t>& sizes,
           size_t offset;
           if (!stack.empty()) {
             offset = stack.back().offset;
-            output->SetOffsetAndLineBreak(offset);
+            output->SetOffsetAndLineBreak(offset - token.beg.offset);
           } else {
             offset = output->LineWidth();
           }
@@ -197,7 +245,7 @@ void Render(const std::vector<Token>& tokens, const std::vector<ssize_t>& sizes,
           entry = {0, BreakType::FITS};
         } else {
           entry = {
-              output->Remaining(),
+              output->Remaining() - token.beg.offset,
               token.beg.break_type == BreakType::CONSISTENT
                   ? BreakType::CONSISTENT
                   : BreakType::INCONSISTENT,
@@ -220,7 +268,7 @@ void Render(const std::vector<Token>& tokens, const std::vector<ssize_t>& sizes,
                    top.break_type == BreakType::FORCE_LINE_BREAK) {
           output->SetOffsetAndLineBreak(offset - token.brk.offset);
         } else if (top.break_type == BreakType::INCONSISTENT) {
-          if (token.brk.nobreak && output->FitsInCurrentLine(size)) {
+          if (output->FitsInCurrentLine(size)) {
             output->IndentWithSpaceUpdate(token.brk.num_spaces);
           } else {
             output->SetOffsetAndLineBreak(offset - token.brk.offset);
@@ -261,7 +309,13 @@ size_t ApproxOutputLength(const std::vector<Token>& tokens) {
 
 std::string PrettyPrint(const std::vector<Token>& tokens, size_t line_width) {
   std::vector<ssize_t> sizes = ComputeSizes(tokens);
+  assert(sizes.size() == tokens.size());
   UpdatesSizesForNoBreaks(tokens, sizes);
+#if 0
+  for (size_t i = 0; i < tokens.size(); i++) {
+    std::cout << tokens[i] << " " << sizes[i] << std::endl;
+  }
+#endif
   Output output(line_width, ApproxOutputLength(tokens));
   Render(tokens, sizes, &output);
   return output.Get();
