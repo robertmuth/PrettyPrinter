@@ -125,6 +125,42 @@ void UpdatesSizesForNoBreaks(const std::vector<Token>& tokens,
   }
 }
 
+class OutputBuffer {
+ public:
+  OutputBuffer(size_t line_width, size_t approx_output_length)
+      : line_width_(line_width), remaining_(line_width) {
+    buffer_.reserve(approx_output_length);
+  }
+
+  void Append(std::string_view str) { buffer_.append(str); }
+
+  void AppendWithSpaceUpdate(std::string_view str) {
+    buffer_ += str;
+    remaining_ -= str.size();
+  }
+
+  size_t CurrentIndent() { return line_width_ - remaining_; }
+
+  bool FitsInCurrentLine(size_t size) { return size <= remaining_; }
+
+  std::string Get() { return buffer_; }
+
+  void SetOffset(size_t offset) { remaining_ = offset; }
+
+  void LineBreak() {
+    buffer_ += '\n';
+    size_t ci = CurrentIndent();
+    for (size_t i = 0; i < ci; i++) {
+      buffer_ += ' ';
+    }
+  }
+
+ private:
+  size_t line_width_;
+  size_t remaining_;
+  std::string buffer_;
+};
+
 std::string PrettyPrint(const std::vector<Token>& tokens, size_t line_width) {
   std::vector<ssize_t> sizes = ComputeSizes(tokens);
   UpdatesSizesForNoBreaks(tokens, sizes);
