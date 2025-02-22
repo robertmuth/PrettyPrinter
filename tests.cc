@@ -57,11 +57,22 @@ int Test() {
                                  Str("end;"),
                                  End()};
 
+  std::vector<Token> example6 = {{Beg(BreakType::INCONSISTENT, 6)}};
+  SplitAndGroup(&example6, "cases 1 : XXXXX");
+  example6.push_back(LineBreak());
+  SplitAndGroup(&example6, "2 : YYYYY");
+  example6.push_back(LineBreak());
+  SplitAndGroup(&example6, "3 : ZZZZZ");
+  example6.push_back(End());
+
   struct {
     size_t line_width;
     std::vector<Token> tokens;
     std::string expected;
-  } test_suite[] = {{75, example0, R"(procedure test(x, y: Integer);
+  } test_suite[] = {{75, example6, R"(cases 1 : XXXXX
+      2 : YYYYY
+      3 : ZZZZZ)"},
+                    {75, example0, R"(procedure test(x, y: Integer);
 begin
   x:=1;
   y:=200;

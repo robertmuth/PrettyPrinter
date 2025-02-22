@@ -228,14 +228,16 @@ example_python: list[PP.Token] = [
     PP.End(),
 ]
 
-TESTS = [
-    (75,
-     [
+example6 =  [
          PP.Beg(PP.BreakType.INCONSISTENT, 6),
          *SplitAndGroup('cases 1 : XXXXX'), PP.LineBreak(),
          *SplitAndGroup('2 : YYYYY'), PP.LineBreak(),
          *SplitAndGroup('3 : ZZZZZ'),
-         PP.End()],
+         PP.End()]
+
+TESTS = [
+    (75,
+    example6,
      """cases 1 : XXXXX
       2 : YYYYY
       3 : ZZZZZ"""),
