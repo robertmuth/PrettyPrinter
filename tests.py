@@ -61,7 +61,17 @@ example2: list[PP.Token] = [
 
 ]
 
-example3: list[PP.Token] = [
+example3a: list[PP.Token] = [
+    PP.Beg(PP.BreakType.INCONSISTENT, 2),
+    PP.Str("XXXXXXXXXX"),
+    PP.Brk(), PP.Str("+"), PP.Brk(),
+    PP.Str("YYYYYYYYYY"),
+    PP.Brk(), PP.Str("+"), PP.Brk(),
+    PP.Str("ZZZZZZZZZZ"),
+    PP.End()]
+
+example3b: list[PP.Token] = [
+    PP.Beg(PP.BreakType.INCONSISTENT, 4),
     PP.Str("XXXXXXXXXX"),
     PP.Brk(), PP.Str("+"), PP.Brk(),
     PP.Str("YYYYYYYYYY"),
@@ -228,16 +238,16 @@ example_python: list[PP.Token] = [
     PP.End(),
 ]
 
-example6 =  [
-         PP.Beg(PP.BreakType.INCONSISTENT, 6),
-         *SplitAndGroup('cases 1 : XXXXX'), PP.LineBreak(),
-         *SplitAndGroup('2 : YYYYY'), PP.LineBreak(),
-         *SplitAndGroup('3 : ZZZZZ'),
-         PP.End()]
+example6 = [
+    PP.Beg(PP.BreakType.INCONSISTENT, 6),
+    *SplitAndGroup('cases 1 : XXXXX'), PP.LineBreak(),
+    *SplitAndGroup('2 : YYYYY'), PP.LineBreak(),
+    *SplitAndGroup('3 : ZZZZZ'),
+    PP.End()]
 
 TESTS = [
     (75,
-    example6,
+     example6,
      """cases 1 : XXXXX
       2 : YYYYY
       3 : ZZZZZ"""),
@@ -270,17 +280,14 @@ end;"""),
   end;"""),
     (75, [PP.Beg(PP.BreakType.INCONSISTENT, 2), PP.Str("XXXXXXX"), PP.Brk(), PP.Str("YYYYYYY"), PP.End()],
      "XXXXXXX YYYYYYY"),
-    (75, [PP.Beg(PP.BreakType.INCONSISTENT, 2)] + example3,
+    (75,  example3a,
      'XXXXXXXXXX + YYYYYYYYYY + ZZZZZZZZZZ'),
-    (25, [PP.Beg(PP.BreakType.INCONSISTENT, 2)] + example3,
-     """XXXXXXXXXX + YYYYYYYYYY +
-  ZZZZZZZZZZ"""),
-    (20, [PP.Beg(PP.BreakType.INCONSISTENT, 2)] + example3,
+    (25,  example3a,
+     "XXXXXXXXXX + YYYYYYYYYY +\n  ZZZZZZZZZZ"),
+    (20, example3a,
      'XXXXXXXXXX +\n  YYYYYYYYYY +\n  ZZZZZZZZZZ'),
-    (20, [PP.Beg(PP.BreakType.INCONSISTENT, 4)] + example3,
-     """XXXXXXXXXX +
-    YYYYYYYYYY +
-    ZZZZZZZZZZ"""),
+    (20, example3b,
+     "XXXXXXXXXX +\n    YYYYYYYYYY +\n    ZZZZZZZZZZ"),
     (75, example4, "begin x := 40 + 2 end"),
     (20, SplitAndGroup("locals a, b, c, d, e, f, g, h;"),
      """locals a, b, c, d,
