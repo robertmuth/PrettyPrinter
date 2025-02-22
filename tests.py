@@ -156,6 +156,22 @@ example_abcd: list[PP.Token] = [
     PP.End()
 ]
 
+
+example_abcd_x4: list[PP.Token] = [
+    PP.Beg(PP.BreakType.CONSISTENT, 1),
+    PP.Str("("),
+    PP.NoBreak(0),
+    *example_abcd,
+    PP.Brk(0),
+    *example_abcd,
+    PP.Brk(0),
+    *example_abcd,
+    PP.Brk(0),
+    *example_abcd,
+    PP.Str(")"),
+    PP.End(),
+]
+
 example_abcdefgh: list[PP.Token] = [
     PP.Beg(PP.BreakType.CONSISTENT, 1),
     PP.Str("("),
@@ -165,41 +181,17 @@ example_abcdefgh: list[PP.Token] = [
     PP.NoBreak(0),
     PP.Str("abcde"),
     PP.NoBreak(1),
-    PP.Beg(PP.BreakType.CONSISTENT, 1),
-    PP.Str("("),
-    PP.NoBreak(0),
-    *example_abcd,
-    PP.Brk(0),
-    *example_abcd,
-    PP.Brk(0),
-    *example_abcd,
-    PP.Brk(0),
-    *example_abcd,
+    *example_abcd_x4,
     PP.Str(")"),
     PP.End(),
     PP.Str(")"),
-    PP.End(),
-    PP.Str(")"),
-    #
     PP.Brk(1),
-    #
     PP.Beg(PP.BreakType.CONSISTENT, 4),
     PP.Str("("),
     PP.NoBreak(0),
     PP.Str("abcdefgh"),
     PP.NoBreak(1),
-    PP.Beg(PP.BreakType.CONSISTENT, 1),
-    PP.Str("("),
-    PP.NoBreak(0),
-    *example_abcd,
-    PP.Brk(0),
-    *example_abcd,
-    PP.Brk(0),
-    *example_abcd,
-    PP.Brk(0),
-    *example_abcd,
-    PP.Str(")"),
-    PP.End(),
+    *example_abcd_x4,
     PP.Str(")"),
     PP.End(),
     PP.Str(")"),
@@ -304,10 +296,7 @@ end;"""),
           3, 4, 5,
           6, 7, 8}"""),
     (20, example_abcd, "(a b c d)"),
-    (5, example_abcd, """(a
-    b
-    c
-    d)"""),
+    (5, example_abcd, "(a\n    b\n    c\n    d)"),
     (25, example_abcdefgh, """((abcde ((a b c d)
          (a b c d)
          (a b c d)

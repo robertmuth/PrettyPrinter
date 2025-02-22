@@ -171,6 +171,42 @@ int Test() {
                                      // note missing break
                                      Str(")"), End()};
 
+  std::vector<Token> example_abcd_x4 = {Beg(BreakType::CONSISTENT, 1), Str("("),
+                                        NoBreak(0)};
+  AppendAll(example_abcd_x4, example_abcd);
+  example_abcd_x4.push_back(Brk(0));
+  AppendAll(example_abcd_x4, example_abcd);
+  example_abcd_x4.push_back(Brk(0));
+  AppendAll(example_abcd_x4, example_abcd);
+  example_abcd_x4.push_back(Brk(0));
+  AppendAll(example_abcd_x4, example_abcd);
+  example_abcd_x4.push_back(Str(")"));
+  example_abcd_x4.push_back(End());
+
+  std::vector<Token> example_abcdefgh = {Beg(BreakType::CONSISTENT, 1),
+                                         Str("("),
+                                         NoBreak(0),
+                                         Beg(BreakType::CONSISTENT, 4),
+                                         Str("("),
+                                         NoBreak(0),
+                                         Str("abcde"),
+                                         NoBreak(1)};
+  AppendAll(example_abcdefgh, example_abcd_x4);
+  AppendAll(example_abcdefgh, std::vector<Token>{
+                                  Str(")"),
+                                  End(),
+                                  Str(")"),
+                                  Brk(1),
+                                  Beg(BreakType::CONSISTENT, 4),
+                                  Str("("),
+                                  NoBreak(0),
+                                  Str("abcdefgh"),
+                                  NoBreak(1),
+                              });
+  AppendAll(example_abcdefgh, example_abcd_x4);
+  AppendAll(example_abcdefgh,
+            std::vector<Token>{Str(")"), End(), Str(")"), End()});
+
   std::vector<Token> example_while = {Beg(BreakType::INCONSISTENT, 0),
                                       Str("while"),
                                       Brk(),
@@ -258,11 +294,8 @@ end;)"},
           3, 4, 5,
           6, 7, 8})"},
       {20, example_abcd, "(a b c d)"},
-      {5, example_abcd, R"((a
-    b
-    c
-    d))"},
-#if 0
+      {5, example_abcd, "(a\n    b\n    c\n    d)"},
+      //
       {25, example_abcdefgh, R"(((abcde ((a b c d)
          (a b c d)
          (a b c d)
@@ -272,7 +305,6 @@ end;)"},
             (a b c d)
             (a b c d)))))"},
       //
-#endif
       {40, example_python, R"(while True:
     while True:
         while True:
