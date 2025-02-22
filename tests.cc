@@ -39,6 +39,11 @@ std::vector<Token> MakeTokensFromString(
   return out;
 }
 
+template <typename T>
+void AppendAll(T& dst, const T& src) {
+  dst.insert(end(dst), begin(src), end(src));
+}
+
 int Test() {
   std::vector<Token> example0 = {Beg(BreakType::FORCE_LINE_BREAK, 0),
                                  Str("procedure test(x, y: Integer);"),
@@ -104,6 +109,54 @@ int Test() {
                                  Str("end"),
                                  End()};
 
+  std::vector<Token> example5 = {
+      Beg(BreakType::INCONSISTENT, 2),
+      Str("let x = "),
+      Beg(BreakType::INCONSISTENT, 2),
+      Str("{[10]uint:"),
+      LineBreak(),
+#
+      Str("0,"),
+      Brk(),
+      Str("1,"),
+      Brk(),
+      Str("2,"),
+      Brk(),
+      Str("3,"),
+      Brk(),
+      Str("4,"),
+      Brk(),
+      Str("5,"),
+      Brk(),
+      Str("6,"),
+      //
+      LineBreak(),
+      Str("# comment"),
+      LineBreak(),
+      //
+      Str("0,"),
+      Brk(),
+      Str("1,"),
+      Brk(),
+      Str("2,"),
+      Brk(),
+      Str("3,"),
+      Brk(),
+      Str("4,"),
+      Brk(),
+      Str("5,"),
+      Brk(),
+      Str("6,"),
+      Brk(),
+      Str("7,"),
+      Brk(),
+      Str("8"),
+      //
+      Str("}"),
+      End(),
+      End(),
+  };
+
   std::vector<Token> example6 = {{Beg(BreakType::INCONSISTENT, 6)}};
   SplitAndGroup(&example6, "cases 1 : XXXXX");
   example6.push_back(LineBreak());
@@ -111,6 +164,41 @@ int Test() {
   example6.push_back(LineBreak());
   SplitAndGroup(&example6, "3 : ZZZZZ");
   example6.push_back(End());
+
+  std::vector<Token> example_abcd = {Beg(BreakType::CONSISTENT, 4), Str("("),
+                                     NoBreak(0), Str("a"), Brk(), Str("b"),
+                                     Brk(), Str("c"), Brk(), Str("d"),
+                                     // note missing break
+                                     Str(")"), End()};
+
+  std::vector<Token> example_while = {Beg(BreakType::INCONSISTENT, 0),
+                                      Str("while"),
+                                      Brk(),
+                                      Str("True"),
+                                      Brk(0),
+                                      Str(":"),
+                                      End()};
+
+  std::vector<Token> example_print = {Beg(BreakType::INCONSISTENT, 0),
+                                      Str("print("),
+                                      Brk(0),
+                                      Str("'hello world'"),
+                                      Str(")"),
+                                      End()};
+
+  std::vector<Token> example_python;
+  example_python.push_back(Beg(BreakType::FORCE_LINE_BREAK, 4));
+  AppendAll(example_python, example_while);
+  example_python.push_back(Beg(BreakType::FORCE_LINE_BREAK, 4));
+  AppendAll(example_python, example_while);
+  example_python.push_back(Beg(BreakType::FORCE_LINE_BREAK, 4));
+  AppendAll(example_python, example_while);
+  example_python.push_back(Beg(BreakType::FORCE_LINE_BREAK, 4));
+  AppendAll(example_python, example_print);
+  example_python.push_back(End());
+  example_python.push_back(End());
+  example_python.push_back(End());
+  example_python.push_back(End());
 
   struct {
     size_t line_width;
@@ -121,7 +209,8 @@ int Test() {
       2 : YYYYY
       3 : ZZZZZ)"},
       //
-      {75, example0, R"(procedure test(x, y: Integer);
+      {75, example0,
+       R"(procedure test(x, y: Integer);
 begin
   x:=1;
   y:=200;
@@ -137,10 +226,18 @@ end;)"},
         End()},
        "XXXXXXX YYYYYYY"},
       //
-      {75, example3a, "XXXXXXXXXX + YYYYYYYYYY + ZZZZZZZZZZ"},
-      {25, example3a, "XXXXXXXXXX + YYYYYYYYYY +\n  ZZZZZZZZZZ"},
-      {20, example3a, "XXXXXXXXXX +\n  YYYYYYYYYY +\n  ZZZZZZZZZZ"},
-      {20, example3b, "XXXXXXXXXX +\n    YYYYYYYYYY +\n    ZZZZZZZZZZ"},
+      {75, example3a,
+       "XXXXXXXXXX + YYYYYYYYYY + "
+       "ZZZZZZZZZZ"},
+      {25, example3a,
+       "XXXXXXXXXX + YYYYYYYYYY +\n  "
+       "ZZZZZZZZZZ"},
+      {20, example3a,
+       "XXXXXXXXXX +\n  YYYYYYYYYY +\n  "
+       "ZZZZZZZZZZ"},
+      {20, example3b,
+       "XXXXXXXXXX +\n    YYYYYYYYYY +\n    "
+       "ZZZZZZZZZZ"},
       //
       {75, example4, "begin x := 40 + 2 end"},
       //
@@ -149,7 +246,37 @@ end;)"},
       {20,
        MakeTokensFromString("locals a, b, c, d, e, f, g, h;",
                             BreakType::CONSISTENT),
-       "locals\n  a,\n  b,\n  c,\n  d,\n  e,\n  f,\n  g,\n  h;"},
+       "locals\n  a,\n  b,\n  c,\n  d,\n  "
+       "e,\n  f,\n  g,\n  h;"},
+      //
+      {20, example5, R"(let x = {[10]uint:
+          0, 1, 2,
+          3, 4, 5,
+          6,
+          # comment
+          0, 1, 2,
+          3, 4, 5,
+          6, 7, 8})"},
+      {20, example_abcd, "(a b c d)"},
+      {5, example_abcd, R"((a
+    b
+    c
+    d))"},
+#if 0
+      {25, example_abcdefgh, R"(((abcde ((a b c d)
+         (a b c d)
+         (a b c d)
+         (a b c d))))
+ (abcdefgh ((a b c d)
+            (a b c d)
+            (a b c d)
+            (a b c d)))))"},
+      //
+#endif
+      {40, example_python, R"(while True:
+    while True:
+        while True:
+            print('hello world'))"},
   };
 
   for (const auto& test : test_suite) {
