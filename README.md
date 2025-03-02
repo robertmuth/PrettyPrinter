@@ -10,7 +10,7 @@ with some enhancements.
 
 Currently, implementation are available in
 * Python3 (the reference implenentation) - see [tests.py] for usage
-* C++ (17) - see [tests.cc] for usage
+* C++ (20) - see [tests.cc] for usage
 
 For more recent developments in the field
 of Pretty Printing this paper has a good historical overview:
