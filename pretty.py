@@ -15,7 +15,7 @@ Which takes list of Tokens and returns a string with
 formatted text.
 
 A token may be one of:
-* Str -- a verbsatim string
+* Str -- a verbatim string
 * Brk -- an optional line break
 * Beg -- begin of a group
 * End -- end of a group
